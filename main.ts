@@ -23,22 +23,17 @@ function getQury() {
 }
 
 async function getNewsUrls(query: string) {
-    const searxngUrl = "http://localhost";
+    const searxngUrl = new URL("http://localhost");
     const params = new URLSearchParams({
         q: query,
         format: "json",
     });
+    searxngUrl.search = params.toString();
 
     startSpinner();
     let searchResults;
     try {
-        searchResults = await fetch(searxngUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: params,
-        });
+        searchResults = await fetch(searxngUrl);
 
         if (!searchResults.ok) {
             throw new Error(`HTTP error! Status: ${searchResults.status}`);
@@ -52,25 +47,43 @@ async function getNewsUrls(query: string) {
         Deno.exit(1);
     }
 
-    const searchResultsJson: { results: Array<{ url: string }> } = await searchResults.json();
+    const searchResultsJson: { results: Array<{ url: string; score: number }> } = await searchResults.json();
     stopSpinner();
 
-    const urls = searchResultsJson.results
-        .map((result) => result.url)
-        .slice(0, 1);
-    return urls;
+    let urlData = searchResultsJson.results.map((result) => ({
+        url: result.url,
+        score: result.score,
+    }));
+    urlData.sort((a, b) => b.score - a.score);
+    urlData.filter((url) => !url.url.endsWith(".pdf"));
+    urlData = urlData.slice(0, 5);
+
+    const urlList = urlData.map((data) => data.url);
+    return urlList;
 }
 
 async function getCleanedText(urls: string[]) {
     const MAX_TOKEN = 500;
     let texts = [];
-    for await (const url of urls) {
-        const getUrl = await fetch(url);
+    for (const url of urls) {
         console.log(`Fetching ${url}`);
 
-        const html = await getUrl.text();
-        const text = htmlToText(html);
-        texts.push(`Source: ${url}\n${text}\n\n`);
+        let getUrl;
+        try {
+            getUrl = await fetch(url);
+            if (!getUrl.ok) {
+                throw new Error(`HTTP error! Status: ${getUrl.status}`);
+            }
+            const html = await getUrl.text();
+            const text = htmlToText(html);
+            texts.push(`Source: ${url}\nInformation: ${text}\n\n`);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                printError(`Failed to fetch ${url}`);
+            } else {
+                printError(`Error occurred: ${error}`);
+            }
+        }
     }
 
     const maxLen = (MAX_TOKEN / texts.length) * 5;
@@ -88,7 +101,7 @@ async function answerQuery(query: string, texts: string[]) {
     console.log("Invoking ollama...");
     const result = await ollama.generate({
         model: "tinyllama",
-        prompt: `${query}. Summarize the information and provide an answer.
+        prompt: `${query}. Summarize the information and provide an answer. Also just focus on readble characters.
                 Use only the information in the following articles to answer the question: ${texts.join("\n\n")}`,
         stream: true,
         options: {
