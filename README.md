@@ -1,4 +1,4 @@
-WebAI: A Deno-Based Web Scraping and AI-Powered Query Answering Tool
+WebAI: Web Scraping and AI-Powered Query Answering Tool
 ====================================================================
 
 WebAI is a Deno-based tool that scrapes web content, cleans it, and uses Ollama (a local LLM) to answer user queries based on the scraped information. It integrates with SearXNG (a privacy-respecting metasearch engine) to fetch relevant URLs and uses Ollama to generate concise answers.
@@ -20,13 +20,13 @@ Prerequisites
 
 Before using WebAI, ensure you have the following installed:
 
-1.  **Deno**: Install Deno from [deno.land](https://deno.land/).
+*  **Deno**: Install Deno from [deno.land](https://deno.land/).
     
-2.  **Docker**: Install Docker from [docker.com](https://www.docker.com/).
+*  **Docker**: Install Docker from [docker.com](https://www.docker.com/).
     
-3.  **Ollama**: Set up Ollama locally (instructions below).
+*  **Ollama**: Set up Ollama locally (instructions below).
     
-4.  **SearXNG**: Set up SearXNG using Docker (instructions below).
+*  **SearXNG**: Set up SearXNG using Docker (instructions below).
     
 
 Setup
